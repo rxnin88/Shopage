@@ -1,0 +1,256 @@
+<?php
+session_start(); // Start the session
+
+$_SESSION['cle'] = '{{USER_ID}}'; //This is the landing page creator's user_id
+
+// Retrieve the logged-in user's ID from the session
+$user_id = $_SESSION['cle'];
+
+require("connexion.php");
+
+
+?>
+
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{B_NAME}} - E-Commerce Landing Page</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body class="font-sans">
+    <!-- Navigation -->
+    <header class="py-6 bg-white border-b border-gray-200">
+        <div class="mx-auto max-w-7xl px-8">
+            <nav class="text-center items-center justify-between h-6">
+                <div class="">
+                    <a href="#" class="text-2xl font-bold">{{B_NAME}}</a>
+                </div>
+            </nav>
+        </div>
+    </header>
+    <!-- Hero Section -->
+    <div class="py-12 sm:py-24">
+        <div class="mx-auto max-w-7xl px-6 lg:px-8">
+            <div class="mx-auto max-w-2xl text-center">
+                <h1 class="text-4xl font-bold tracking-tight text-gray-900 sm:text-6xl">{{B_NAME}}</h1>
+                <p class="mt-6 font-light text-2xl leading-8 text-gray-600">{{DESC}}</p>
+            </div>
+        </div>
+    </div>
+    <!-- Featured Products Section -->
+    <section class="py-16">
+        <div class="container mx-auto px-4">
+            <h2 class="text-3xl mb-8 text-gray-900 font-light text-center">Our Products</h2>
+            <?php
+            // Include the database connection
+            require("connexion.php");
+
+            // Get the landing page ID from the URL query parameter
+            $landing_page_id = '{{PAGE_ID}}';
+
+            // Fetch featured products from the database based on landing page ID
+            $sql = "SELECT p.* FROM products p
+                JOIN landing_pages lp ON p.id = lp.product_id
+                WHERE lp.id = ?";
+
+            $stmt = $con->prepare($sql);
+            $stmt->bind_param("i", $landing_page_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows > 0) {
+                // Output data of each row
+                while ($row = $result->fetch_assoc()) {
+                    // Extract product information
+                    $product_id = $row['id'];
+                    $product_name = $row['name'];
+                    $product_description = $row['description'];
+                    $product_price = $row['price'];
+                    $product_quantity = $row['quantity'];
+                    $product_image = ''; // Initialize product image
+
+                    // Fetch product image
+                    $sql_image = "SELECT image_url FROM product_images WHERE product_id = $product_id LIMIT 1";
+                    $result_image = $con->query($sql_image);
+                    if ($result_image->num_rows > 0) {
+                        $row_image = $result_image->fetch_assoc();
+                        $product_image = $row_image['image_url'];
+                    }
+
+                    // Check if the product is in promotion
+                    $sql_promotion = "SELECT discount_percentage FROM product_in_promotion WHERE product_id = ?";
+                    $stmt_promotion = $con->prepare($sql_promotion);
+                    $stmt_promotion->bind_param("i", $product_id);
+                    $stmt_promotion->execute();
+                    $result_promotion = $stmt_promotion->get_result();
+
+                    $is_in_promotion = false;
+                    $discount_percentage = 0;
+                    if ($result_promotion->num_rows > 0) {
+                        $row_promotion = $result_promotion->fetch_assoc();
+                        $is_in_promotion = true;
+                        $discount_percentage = $row_promotion['discount_percentage'];
+                    }
+
+                    // Calculate the final price
+                    $final_price = $is_in_promotion ? $product_price * ((100 - $discount_percentage) / 100) : $product_price;
+            ?>
+
+                    <div class="bg-white rounded-lg border border-1 border-gray-300 overflow-hidden mx-auto max-w-xl">
+                        <img src="<?php echo htmlspecialchars($product_image); ?>" alt="Product" class="w-full h-96 object-cover">
+                        <div class="p-6">
+                            <h3 class="text-3xl font-semibold mb-4"><?php echo htmlspecialchars($product_name); ?></h3>
+                            <p class="text-lg text-gray-700 mb-6"><?php echo htmlspecialchars($product_description); ?></p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-xl font-semibold">
+                                    <?php if ($is_in_promotion) : ?>
+                                        <span class="line-through text-gray-500">$<?php echo htmlspecialchars(number_format($product_price, 2)); ?></span>
+                                        <span class="text-black">$<?php echo htmlspecialchars(number_format($final_price, 2)); ?></span>
+                                    <?php else : ?>
+                                        $<?php echo htmlspecialchars(number_format($product_price, 2)); ?>
+                                    <?php endif; ?>
+                                </span>
+                                <a href="#formachat" class="bg-gray-800 text-white font-semibold py-3 px-6 rounded-lg hover:bg-gray-700 transition duration-300">Order</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mx-auto text-center">
+                        <h1 class="inline-block px-8 py-2 text-3xl mt-28 text-green-600 text-center border-2 border-green-600 rounded-full">ONLY <?php echo htmlspecialchars($product_quantity); ?> LEFT!</h1>
+                    </div>
+
+            <?php
+                }
+            } else {
+                echo "No featured products available for this landing page.";
+            }
+
+            ?>
+        </div>
+    </section>
+
+
+    <div class="mx-auto py-16 px-8 max-w-6xl">
+        <?php
+
+        //Fetch product images
+        $sql_image2 = "SELECT image_desc FROM products WHERE id = $product_id";
+        $result_image2 = $con->query($sql_image2);
+
+        if ($result_image2->num_rows > 0) {
+            $row_image = $result_image2->fetch_assoc();
+            $product_image = $row_image['image_desc'];
+            echo '<img class="mx-auto w-full object-cover rounded-lg" src="' . $product_image . '">';
+        }
+        ?>
+    </div>
+
+    <h1 class="mt-24 text-3xl mb-8 text-gray-900 font-light text-center">Product Images</h1><br>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:px-64 px-8">
+        <?php
+        // Include the database connection
+        require("connexion.php");
+
+        // Start the session if not already started
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+
+
+
+        if (!$product_id) {
+            echo "<p class='text-center text-gray-500'>Product ID is not specified.</p>";
+            exit;
+        }
+
+        // Retrieve images from the database
+        $query = "SELECT * FROM product_images WHERE product_id = ?";
+        $stmt = $con->prepare($query);
+        $stmt->bind_param("i", $product_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+
+        $images = [];
+        while ($row = $result->fetch_assoc()) {
+            $images[] = $row;
+        }
+
+        // Close the statement and the connection
+        $stmt->close();
+        $con->close();
+        ?>
+
+        <?php if (!empty($images)) : ?>
+            <?php foreach ($images as $image) : ?>
+                <div class="relative">
+                    <img src="<?php echo htmlspecialchars($image['image_url']); ?>" alt="Product Image" class="w-full h-96 object-cover rounded-lg">
+                </div>
+            <?php endforeach; ?>
+        <?php else : ?>
+            <p class="text-center text-gray-500">No images available for this product.</p>
+        <?php endif; ?>
+    </div>
+
+
+    <div class="py-16"></div>
+
+
+
+
+
+    <!-- Order form -->
+    <h2 class="text-3xl mb-8 text-gray-900 font-light text-center">Enter your information to order</h2>
+    <div class="mt-16 mb-12 max-w-lg mx-auto bg-white rounded-lg border border-1 border-gray-200 p-6">
+        <form id="formachat" action="buyer-add.php" method="POST" class="mt-6">
+
+            <!-- Product ID -->
+            <div class="mb-4" hidden>
+                <label for="product_id" class="block text-gray-700 font-semibold">Product ID</label>
+                <input type="number" id="product_id" name="product_id" required class="w-full  mt-2 p-2 border rounded-lg focus:outline-none focus:border-blue-500" value="<?php echo '' . $product_id; ?>">
+            </div>
+
+            <!-- Full Name -->
+            <div class="mb-4">
+                <label for="full_name" class="block text-gray-700 font-semibold">Full Name</label>
+                <input type="text" id="full_name" name="full_name" required class="w-full  mt-2 p-2 border rounded-lg focus:outline-none focus:border-blue-500">
+            </div>
+            <!-- Email -->
+            <div class="mb-4">
+                <label for="email" class="block text-gray-700 font-semibold">Email</label>
+                <input type="email" id="email" name="email" required class="w-full mt-2 p-2 border rounded-lg focus:outline-none focus:border-blue-500">
+            </div>
+            <!-- Quantity -->
+            <div class="mb-4">
+                <label for="quantity" class="block text-gray-700 font-semibold">Quantity</label>
+                <input type="number" id="quantity" name="quantity" required class="w-full  mt-2 p-2 border rounded-lg focus:outline-none focus:border-blue-500">
+            </div>
+            <!-- Shipping Address -->
+            <div class="mb-4">
+                <label for="shipping_address" class="block text-gray-700 font-semibold">Shipping Address</label>
+                <textarea id="shipping_address" name="shipping_address" required class="w-full mt-2 p-2 border rounded-lg focus:outline-none focus:border-blue-500"></textarea>
+            </div>
+            <!-- Submit Button -->
+            <div class="text-center">
+                <button type="submit" class="bg-black text-white font-semibold py-2 px-4 rounded-lg hover:bg-green-500 transition duration-300">Submit</button>
+            </div>
+        </form>
+    </div>
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; <?php echo date("Y"); ?> {{B_NAME}}. All rights reserved.</p>
+        </div>
+    </footer>
+</body>
+
+</html>

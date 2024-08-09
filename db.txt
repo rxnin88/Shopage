@@ -1,0 +1,97 @@
+
+
+-- Create the Users Table
+CREATE TABLE IF NOT EXISTS users (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create the Templates Table
+CREATE TABLE IF NOT EXISTS templates (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    html TEXT,
+    css TEXT,
+    js TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- Create the Landing Pages Table
+CREATE TABLE IF NOT EXISTS landing_pages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    template_id INT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    html_content TEXT,
+    css_content TEXT,
+    js_content TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id),
+    FOREIGN KEY (template_id) REFERENCES templates(id)
+);
+
+-- Create the Assets Table
+CREATE TABLE IF NOT EXISTS assets (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    landing_page_id INT NOT NULL,
+    type ENUM('image', 'video') NOT NULL,
+    url VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (landing_page_id) REFERENCES landing_pages(id)
+);
+
+-- Create the Form Submissions Table
+CREATE TABLE IF NOT EXISTS form_submissions (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    landing_page_id INT NOT NULL,
+    data JSON NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (landing_page_id) REFERENCES landing_pages(id)
+);
+
+-- Create the Analytics Table
+CREATE TABLE IF NOT EXISTS analytics (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    landing_page_id INT NOT NULL,
+    metric VARCHAR(255) NOT NULL,
+    value INT NOT NULL,
+    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (landing_page_id) REFERENCES landing_pages(id)
+);
+
+-- Sample data for Users Table
+INSERT INTO users (username, email, password) VALUES
+('john_doe', 'john.doe@example.com', 'hashedpassword1'),
+('jane_smith', 'jane.smith@example.com', 'hashedpassword2');
+
+-- Sample data for Templates Table
+INSERT INTO templates (name, description, html, css, js) VALUES
+('Template A', 'Description of Template A', '<div>Template A HTML</div>', 'div { color: red; }', 'console.log("Template A JS");'),
+('Template B', 'Description of Template B', '<div>Template B HTML</div>', 'div { color: blue; }', 'console.log("Template B JS");');
+
+-- Sample data for Landing Pages Table
+INSERT INTO landing_pages (user_id, template_id, name, html_content, css_content, js_content) VALUES
+(1, 1, 'John\'s Landing Page', '<div>John\'s Landing Page HTML</div>', 'div { color: green; }', 'console.log("John\'s JS");'),
+(2, 2, 'Jane\'s Landing Page', '<div>Jane\'s Landing Page HTML</div>', 'div { color: purple; }', 'console.log("Jane\'s JS");');
+
+-- Sample data for Assets Table
+INSERT INTO assets (landing_page_id, type, url) VALUES
+(1, 'image', 'https://example.com/image1.jpg'),
+(2, 'image', 'https://example.com/image2.jpg');
+
+-- Sample data for Form Submissions Table
+INSERT INTO form_submissions (landing_page_id, data) VALUES
+(1, '{"name":"Alice","email":"alice@example.com","message":"Hi John!"}'),
+(2, '{"name":"Bob","email":"bob@example.com","message":"Hi Jane!"}');
+
+-- Sample data for Analytics Table
+INSERT INTO analytics (landing_page_id, metric, value) VALUES
+(1, 'visitor', 150),
+(2, 'visitor', 200);
